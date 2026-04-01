@@ -1,220 +1,207 @@
-# API de Votação - Spring Boot + MariaDB
+# 🗳️ API de Votação - Cooperativa
 
-Projeto para o teste técnico de votação: abertura de sessão, recebimento de votos, apuração de resultado e persistência em banco de dados.
+API REST para gerenciamento de pautas e sessões de votação em assembleias, permitindo cadastro de pautas, abertura de sessões, registro de votos e apuração de resultados.
 
+---
 
-## Stack
+## 🚀 Tecnologias utilizadas
 
 - Java 17
-- Spring Boot 3.3.5
-- Spring Web
+- Spring Boot 3
 - Spring Data JPA
 - MariaDB
-- Spring Validation
-- Lombok
-- Swagger / OpenAPI
-- JUnit 5 + Mockito
+- Docker / Docker Compose
+- Maven
+- Swagger (OpenAPI)
 
-## Funcionalidades implementadas
+---
 
-- Cadastrar nova pauta
-- Abrir sessão de votação por pauta
-- Duração default de 1 minuto quando não informada
-- Receber votos `SIM` ou `NAO`
-- Restringir 1 voto por associado em cada pauta
-- Apurar resultado da votação
-- Persistir dados em MariaDB
-- Documentação Swagger
-- Tratamento global de exceções
+## 🧱 Arquitetura
 
-## Estrutura do projeto
+A aplicação segue uma arquitetura em camadas:
 
-```text
-src/main/java/com/example/votacao
-├── config
-├── controller
-├── dto
-├── entity
-├── exception
-├── repository
-└── service
-```
+- **Controller** → exposição dos endpoints REST  
+- **Service** → regras de negócio  
+- **Repository** → acesso a dados  
+- **Entity (Domain)** → modelagem do domínio  
 
-## Como subir o MariaDB
+### Princípios aplicados
 
-Na raiz do projeto:
+- Separação de responsabilidades (SRP)
+- Clean Code
+- Validação de regras de negócio na camada de serviço
+- Simplicidade (sem overengineering)
+
+---
+
+## ⚙️ Como executar o projeto
+
+### 🔹 1. Subir o banco de dados
 
 ```bash
 docker compose up -d
 ```
 
-Isso sobe um MariaDB com:
+---
 
-- database: `votacao_db`
-- user: `root`
-- password: `root`
-- port: `3306`
-
-## Como executar a aplicação
-
-### 1. Suba o banco
-
-```bash
-docker compose up -d
-```
-
-### 2. Rode a aplicação
+### 🔹 2. Rodar a aplicação
 
 ```bash
 mvn spring-boot:run
 ```
 
-Ou gere o jar:
+---
 
-```bash
-mvn clean package
-java -jar target/votacao-api-1.0.0.jar
-```
+### 🔹 3. Acessar documentação (Swagger)
 
-## Configuração padrão
+http://localhost:8080/swagger-ui/index.html
 
-Arquivo: `src/main/resources/application.properties`
+---
 
-```properties
-spring.datasource.url=jdbc:mariadb://localhost:3306/votacao_db?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=UTF-8
-spring.datasource.username=root
-spring.datasource.password=root
-spring.jpa.hibernate.ddl-auto=update
-```
+## 🗄️ Configuração do banco
 
-## Swagger
+- Host: localhost  
+- Porta: 3306  
+- Database: votacao_db  
+- Usuário: root  
+- Senha: root  
 
-Após subir a aplicação:
+---
 
-- Swagger UI: `http://localhost:8080/swagger-ui.html`
-- OpenAPI JSON: `http://localhost:8080/api-docs`
+## 📌 Funcionalidades
 
-## Endpoints
+- ✔ Cadastrar pauta  
+- ✔ Abrir sessão de votação  
+- ✔ Receber votos (Sim/Não)  
+- ✔ Garantir 1 voto por associado por pauta  
+- ✔ Apurar resultado  
+- ✔ Persistência em banco  
 
-### Criar pauta
+---
 
-```http
+## 🔗 Endpoints
+
+### 🧾 Criar pauta
+
 POST /api/pautas
-Content-Type: application/json
-```
 
-Body:
-
+**Body:**
 ```json
 {
-  "titulo": "Reajuste anual",
-  "descricao": "Deliberação sobre reajuste anual"
+  "titulo": "Aprovar orçamento 2026",
+  "descricao": "Discussão financeira anual"
 }
 ```
 
-### Buscar pauta
+---
 
-```http
-GET /api/pautas/{pautaId}
-```
+### ⏱ Abrir sessão
 
-### Abrir sessão
+POST /api/pautas/{id}/sessao
 
-```http
-POST /api/pautas/{pautaId}/sessao
-Content-Type: application/json
-```
+Com duração customizada:
 
-Body com duração explícita:
+POST /api/pautas/{id}/sessao?duracaoMinutos=5
 
+---
+
+### 🗳 Registrar voto
+
+POST /api/pautas/{id}/votos
+
+**Body:**
 ```json
 {
-  "duracaoMinutos": 5
-}
-```
-
-Body vazio ou ausente = duração padrão de 1 minuto.
-
-### Consultar sessão
-
-```http
-GET /api/pautas/{pautaId}/sessao
-```
-
-### Registrar voto
-
-```http
-POST /api/pautas/{pautaId}/votos
-Content-Type: application/json
-```
-
-```json
-{
-  "associadoId": 123,
+  "associadoId": 1001,
   "voto": "SIM"
 }
 ```
 
-Valores aceitos para `voto`:
-
+Valores possíveis:
 - `SIM`
 - `NAO`
 
-### Obter resultado
+---
 
-```http
-GET /api/pautas/{pautaId}/resultado
-```
+### 📊 Consultar resultado
 
-Resposta exemplo:
+GET /api/pautas/{id}/resultado
 
+**Resposta:**
 ```json
 {
   "pautaId": 1,
-  "tituloPauta": "Reajuste anual",
-  "votosSim": 10,
-  "votosNao": 5,
-  "totalVotos": 15,
+  "sim": 2,
+  "nao": 1,
   "resultado": "SIM venceu"
 }
 ```
 
-## Regras de negócio aplicadas
+---
 
-- Uma pauta precisa existir antes da abertura da sessão
-- Só pode existir uma sessão por pauta
-- Se a duração não for informada, a sessão dura 1 minuto
-- O associado pode votar apenas uma vez por pauta
-- Só é possível votar com sessão aberta
+## 🧪 Regras de negócio
 
-## Respostas de erro
+- Um associado pode votar apenas uma vez por pauta  
+- Votos só são aceitos com sessão aberta  
+- Sessão expira automaticamente  
+- Apenas votos "SIM" ou "NAO" são válidos  
+- Resultado por maioria simples  
 
-### 404 - recurso não encontrado
+---
 
-```json
-{
-  "timestamp": "2026-04-01T10:00:00",
-  "status": 404,
-  "error": "Not Found",
-  "message": "Pauta não encontrada para o id 99",
-  "path": "/api/pautas/99",
-  "fields": null
-}
-```
+## ⚠️ Tratamento de erros
 
-### 400 - regra de negócio
+Exemplo de erro:
 
 ```json
 {
-  "timestamp": "2026-04-01T10:00:00",
   "status": 400,
   "error": "Bad Request",
-  "message": "O associado já votou nesta pauta",
-  "path": "/api/pautas/1/votos",
-  "fields": null
+  "message": "Sessão de votação encerrada"
 }
 ```
 
-## Observações de arquitetura
+Casos tratados:
 
-A solução foi mantida simples e objetiva para aderir ao critério do teste de evitar overengineering. O projeto separa controller, service, repository, DTOs e tratamento global de exceções, com persistência em banco relacional para garantir sobrevivência a restart da aplicação.
+- Pauta não encontrada (404)  
+- Sessão inexistente/expirada (400)  
+- Voto duplicado (409)  
+- Erro interno (500)  
+
+---
+
+## 🧪 Testes
+
+Inclui testes unitários básicos para validação das regras principais.
+
+---
+
+## 📊 Persistência
+
+Os dados são armazenados em MariaDB e permanecem após reinício da aplicação.
+
+---
+
+## 📌 Considerações técnicas
+
+- Estrutura simples e objetiva  
+- Código organizado e legível  
+- Preparado para evolução futura  
+- Foco em clareza e manutenção  
+
+---
+
+## 🔮 Melhorias futuras
+
+- Integração com validação de CPF  
+- Cache para performance  
+- Versionamento de API  
+- Testes de carga  
+- Controle de concorrência  
+
+---
+
+## 👨‍💻 Autor
+
+Projeto desenvolvido como parte de avaliação técnica para vaga de desenvolvedor backend.
+Paulo Pereira
